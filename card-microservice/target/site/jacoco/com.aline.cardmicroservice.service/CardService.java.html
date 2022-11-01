@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CardService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">card-microservice</a> &gt; <a href="index.source.html" class="el_package">com.aline.cardmicroservice.service</a> &gt; <span class="el_source">CardService.java</span></div><h1>CardService.java</h1><pre class="source lang-java linenums">package com.aline.cardmicroservice.service;
+
+import com.aline.cardmicroservice.repository.CardRepository;
+import com.aline.core.dto.request.ActivateCardRequest;
+import com.aline.core.dto.request.CardRequest;
+import com.aline.core.dto.request.CreateDebitCardRequest;
+import com.aline.core.dto.response.CardResponse;
+import com.aline.core.exception.BadRequestException;
+import com.aline.core.exception.ResponseEntityException;
+import com.aline.core.exception.notfound.AccountNotFoundException;
+import com.aline.core.exception.notfound.CardNotFoundException;
+import com.aline.core.model.Member;
+import com.aline.core.model.account.Account;
+import com.aline.core.model.account.AccountStatus;
+import com.aline.core.model.account.AccountType;
+import com.aline.core.model.card.Card;
+import com.aline.core.model.card.CardIssuer;
+import com.aline.core.model.card.CardStatus;
+import com.aline.core.model.card.CardType;
+import com.aline.core.model.card.IssuerIdentificationNumber;
+import com.aline.core.repository.AccountRepository;
+import com.aline.core.util.CardUtility;
+import com.aline.core.util.RandomNumberGenerator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import javax.validation.Valid;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+<span class="fc" id="L38">@RequiredArgsConstructor</span>
+<span class="fc" id="L39">@Slf4j</span>
+public class CardService {
+
+    private final CardRepository repository;
+    private final AccountRepository accountRepository;
+    private final CardIssuerService cardIssuerService;
+    private final RandomNumberGenerator randomNumberGenerator;
+    private final CardUtility cardUtility;
+
+    @PostAuthorize(&quot;@authService.canAccess(#returnObject)&quot;)
+    public Card getCardById(long id) {
+<span class="nc" id="L50">        return repository.findById(id).orElseThrow(CardNotFoundException::new);</span>
+    }
+
+    @PostAuthorize(&quot;@authService.canAccess(#returnObject)&quot;)
+    public Card getCardByCardRequest(CardRequest cardRequest) {
+<span class="nc" id="L55">        return repository.findByCardNumberAndSecurityCodeAndExpirationDate(</span>
+<span class="nc" id="L56">                cardRequest.getCardNumber(),</span>
+<span class="nc" id="L57">                cardRequest.getSecurityCode(),</span>
+<span class="nc" id="L58">                cardRequest.getExpirationDate()</span>
+<span class="nc" id="L59">        ).orElseThrow(CardNotFoundException::new);</span>
+    }
+
+    @PreAuthorize(&quot;@authService.canAccessByMemberId(#memberId)&quot;)
+    public List&lt;Card&gt; getCardsByMemberId(Long memberId) {
+<span class="nc" id="L64">        return repository.getCardsByCardHolderId(memberId);</span>
+    }
+
+    @PreAuthorize(&quot;@authService.canAccessByMemberId(#memberId)&quot;)
+    public List&lt;Card&gt; getAvailableCardsByMemberId(Long memberId) {
+<span class="nc" id="L69">        return getCardsByMemberId(memberId).stream()</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">                .filter(card -&gt; card.getCardStatus() != CardStatus.CLOSED)</span>
+<span class="nc" id="L71">                .collect(Collectors.toList());</span>
+    }
+
+    @PreAuthorize(&quot;@authService.canAccessByCreateDebitCardRequest(#createDebitCardRequest)&quot;)
+    @Transactional(rollbackOn = ResponseEntityException.class)
+    public Card createDebitCard(@Valid CreateDebitCardRequest createDebitCardRequest) {
+        // One debit card per member per account
+<span class="nc" id="L78">        String accountNumber = createDebitCardRequest.getAccountNumber();</span>
+<span class="nc" id="L79">        String membershipId = createDebitCardRequest.getMembershipId();</span>
+
+<span class="nc" id="L81">        Account account = accountRepository.findByAccountNumber(accountNumber)</span>
+<span class="nc" id="L82">                .orElseThrow(AccountNotFoundException::new);</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (account.getAccountType() != AccountType.CHECKING)</span>
+<span class="nc" id="L85">            throw new BadRequestException(&quot;Debit cards can only be opened on a valid CHECKING account. This account is not a CHECKING account.&quot;);</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (account.getStatus() == AccountStatus.INACTIVE)</span>
+<span class="nc" id="L88">            throw new BadRequestException(&quot;Cannot create a debit card on an inactive account.&quot;);</span>
+
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (account.getStatus() == AccountStatus.ARCHIVED)</span>
+<span class="nc" id="L91">            throw new BadRequestException(&quot;Cannot create a debit card on a closed account.&quot;);</span>
+
+<span class="nc" id="L93">        Member member = account.getMembers().stream()</span>
+<span class="nc" id="L94">                .filter(m -&gt; m.getMembershipId().equals(membershipId))</span>
+<span class="nc" id="L95">                .findFirst()</span>
+<span class="nc" id="L96">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L97">                    throw new BadRequestException(&quot;Member does not exist in this account.&quot;);</span>
+                });
+
+<span class="nc" id="L100">        boolean cardExists = repository.existsCardByCardHolderAndAccount(member, account);</span>
+
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (cardExists) {</span>
+<span class="nc" id="L103">            List&lt;Card&gt; allCards = repository.findCardsByCardHolderAndAccount(member, account);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">            if (createDebitCardRequest.isReplacement()) {</span>
+<span class="nc" id="L105">                log.info(&quot;Requesting replacement. Closing all cards.&quot;);</span>
+<span class="nc" id="L106">                allCards.forEach(card -&gt; card.setCardStatus(CardStatus.CLOSED));</span>
+<span class="nc" id="L107">                repository.saveAll(allCards);</span>
+<span class="nc" id="L108">                log.info(&quot;Proceeding with card creation...&quot;);</span>
+            } else {
+<span class="nc" id="L110">                log.error(&quot;Activate card already exists. Please request a replacement&quot;);</span>
+<span class="nc" id="L111">                throw new BadRequestException(&quot;Active card already exists. Please request a replacement instead.&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L115">        CardIssuer defaultCardIssuer = cardIssuerService.getDefaultCardIssuer();</span>
+<span class="nc" id="L116">        IssuerIdentificationNumber defaultIin = cardIssuerService.getDefaultIin();</span>
+
+<span class="nc" id="L118">        log.info(&quot;Using default issuer: {}&quot;, defaultCardIssuer.getIssuerName());</span>
+
+<span class="nc" id="L120">        String cardNumber = generateCardNumber(defaultIin.getIin(), defaultCardIssuer.getCardNumberLength());</span>
+
+<span class="nc" id="L122">        Card card = new Card();</span>
+<span class="nc" id="L123">        card.setCardNumber(cardNumber);</span>
+<span class="nc" id="L124">        card.setCardHolder(member);</span>
+<span class="nc" id="L125">        card.setAccount(account);</span>
+<span class="nc" id="L126">        card.setCardStatus(CardStatus.INACTIVE); // Default to inactive</span>
+<span class="nc" id="L127">        card.setCardType(CardType.DEBIT);</span>
+<span class="nc" id="L128">        card.setSecurityCode(randomNumberGenerator.generateRandomNumberString(3));</span>
+<span class="nc" id="L129">        LocalDate expDate = LocalDate.now()</span>
+<span class="nc" id="L130">                .minusDays(LocalDate.now().getDayOfMonth() - 1)</span>
+<span class="nc" id="L131">                .plusYears(3);</span>
+<span class="nc" id="L132">        card.setExpirationDate(expDate);</span>
+
+<span class="nc" id="L134">        Card savedCard = repository.save(card);</span>
+
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (account.getCards() == null) {</span>
+<span class="nc" id="L137">            account.setCards(new HashSet&lt;&gt;());</span>
+        }
+
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (member.getCards() == null) {</span>
+<span class="nc" id="L141">            member.setCards(new HashSet&lt;&gt;());</span>
+        }
+
+<span class="nc" id="L144">        account.getCards().add(savedCard);</span>
+<span class="nc" id="L145">        member.getCards().add(savedCard);</span>
+
+<span class="nc" id="L147">        log.info(&quot;Successfully saved card.&quot;);</span>
+
+<span class="nc" id="L149">        return savedCard;</span>
+    }
+
+    public Card activateCard(@Valid ActivateCardRequest activateCardRequest) {
+
+<span class="nc" id="L154">        Card card = getCardByCardRequest(CardRequest.builder()</span>
+<span class="nc" id="L155">                .cardNumber(activateCardRequest.getCardNumber())</span>
+<span class="nc" id="L156">                .securityCode(activateCardRequest.getSecurityCode())</span>
+<span class="nc" id="L157">                .expirationDate(activateCardRequest.getExpirationDate())</span>
+<span class="nc" id="L158">                .build());</span>
+
+<span class="nc" id="L160">        Member member = card.getCardHolder();</span>
+<span class="nc" id="L161">        String ssn = member.getApplicant().getSocialSecurity();</span>
+
+<span class="nc" id="L163">        LocalDate dateOfBirth = member.getApplicant().getDateOfBirth();</span>
+<span class="nc" id="L164">        String lastFourSSN = ssn.substring(ssn.length() - 4);</span>
+
+        // Verify cardholder information
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        if (!dateOfBirth.isEqual(activateCardRequest.getDateOfBirth()) ||</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            !lastFourSSN.equals(activateCardRequest.getLastFourOfSSN()))</span>
+<span class="nc" id="L169">            throw new BadRequestException(&quot;Information was not entered correctly. Please check your card and try again.&quot;);</span>
+
+        // Checks to allow card activation
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (card.getCardStatus() == CardStatus.ACTIVE)</span>
+<span class="nc" id="L173">            throw new BadRequestException(&quot;Card is already active.&quot;);</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (card.getCardStatus() == CardStatus.CLOSED)</span>
+<span class="nc" id="L175">            throw new BadRequestException(&quot;Card has been closed. Cannot activate a closed card.&quot;);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        if (card.getAccount().getStatus() == AccountStatus.ARCHIVED)</span>
+<span class="nc" id="L177">            throw new BadRequestException(&quot;Cannot activate a card on a closed account.&quot;);</span>
+
+
+<span class="nc" id="L180">        card.setCardStatus(CardStatus.ACTIVE);</span>
+<span class="nc" id="L181">        return repository.save(card);</span>
+    }
+
+    public String generateCardNumber(String iin, int cardNumberLength) {
+<span class="fc" id="L185">        return cardUtility.generateCardNumber(iin, cardNumberLength);</span>
+    }
+
+    public CardResponse mapToResponse(Card card) {
+<span class="nc" id="L189">        return cardUtility.mapToResponse(card);</span>
+    }
+
+    public boolean validateCardNumber(String cardNumber) {
+<span class="fc" id="L193">        return cardUtility.validateCardNumber(cardNumber);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

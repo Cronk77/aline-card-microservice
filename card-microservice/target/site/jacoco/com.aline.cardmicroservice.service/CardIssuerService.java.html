@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CardIssuerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">card-microservice</a> &gt; <a href="index.source.html" class="el_package">com.aline.cardmicroservice.service</a> &gt; <span class="el_source">CardIssuerService.java</span></div><h1>CardIssuerService.java</h1><pre class="source lang-java linenums">package com.aline.cardmicroservice.service;
+
+import com.aline.cardmicroservice.repository.CardIssuerRepository;
+import com.aline.cardmicroservice.repository.IssuerIdentificationNumberRepository;
+import com.aline.core.config.AppConfig;
+import com.aline.core.exception.notfound.CardIssuerNotFound;
+import com.aline.core.model.card.CardIssuer;
+import com.aline.core.model.card.IssuerIdentificationNumber;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+
+@Service
+<span class="fc" id="L17">@RequiredArgsConstructor</span>
+<span class="fc" id="L18">@Slf4j</span>
+public class CardIssuerService {
+
+    private final AppConfig appConfig;
+    private final CardIssuerRepository cardIssuerRepository;
+    private final IssuerIdentificationNumberRepository iinRepository;
+
+    @PostConstruct
+    public void init() {
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        if (StringUtils.isEmpty(appConfig.getDefaultCardIssuer())) {</span>
+<span class="nc" id="L28">            log.error(&quot;Application configuration does not declare default card issuer. CardIssuerService requires this property to be set.&quot;);</span>
+        }
+<span class="fc" id="L30">    }</span>
+
+    public CardIssuer getCardIssuerByName(String issuerName) {
+<span class="nc" id="L33">        return cardIssuerRepository.findByIssuerName(issuerName)</span>
+<span class="nc" id="L34">                .orElseThrow(CardIssuerNotFound::new);</span>
+    }
+    public IssuerIdentificationNumber getIinByIssuerName(String issuerName) {
+<span class="nc" id="L37">        return iinRepository.findIssuerIdentificationNumberByCardIssuerIssuerName(issuerName)</span>
+<span class="nc" id="L38">                .orElseThrow(CardIssuerNotFound::new);</span>
+    }
+
+    public CardIssuer getDefaultCardIssuer() {
+<span class="nc" id="L42">        return getCardIssuerByName(appConfig.getDefaultCardIssuer());</span>
+    }
+
+    public IssuerIdentificationNumber getDefaultIin() {
+<span class="nc" id="L46">        return getIinByIssuerName(appConfig.getDefaultCardIssuer());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

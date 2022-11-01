@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+card-microservice,com.aline.cardmicroservice.controller,CardController,59,13,0,0,15,2,3,2,3,2
+card-microservice,com.aline.cardmicroservice.controller,RootController,1,3,0,0,1,1,1,1,1,1
+card-microservice,com.aline.cardmicroservice.config,CardMicroserviceConfig,0,7,0,0,0,2,0,2,0,2
+card-microservice,com.aline.cardmicroservice.config,WebSecurityConfig,17,0,0,0,5,0,2,0,2,0
+card-microservice,com.aline.cardmicroservice.authorization,CardAuthorizer,82,3,12,0,22,1,9,1,3,1
+card-microservice,com.aline.cardmicroservice,CardMicroserviceApplication,5,3,0,0,2,1,1,1,1,1
+card-microservice,com.aline.cardmicroservice.service,CardIssuerService,31,22,1,1,7,4,5,3,4,3
+card-microservice,com.aline.cardmicroservice.service,CardService,335,33,26,0,80,4,24,4,11,4
+card-microservice,com.aline.cardmicroservice.service,CardEmailService,186,12,2,0,19,1,4,1,3,1
