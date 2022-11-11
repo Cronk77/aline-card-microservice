@@ -1,5 +1,5 @@
 # Using maven as base image
-FROM maven:3.8-eclipse-temurin
+FROM maven:3.8-eclipse-temurin as build
 
 # Uncomment out block to run individual containers without compose
 #########################################################################
@@ -26,12 +26,15 @@ FROM maven:3.8-eclipse-temurin
 #########################################################################
 
 # Copy over directories with target microservice 
-COPY . /aline-financial/aline-card-microservice
+COPY . /aline-card-microservice
 
 # package up microservice
-WORKDIR /aline-financial/aline-card-microservice/
+WORKDIR /aline-card-microservice/
 RUN mvn -Dmaven.test.skip package
 
-# Run Microservice
-WORKDIR /aline-financial/aline-card-microservice/card-microservice/
-CMD java -jar /aline-financial/aline-card-microservice/card-microservice/target/card-microservice-0.1.0.jar
+# Second layer build(reduce size of image)
+FROM openjdk:8u181-jre-alpine as final
+# Run Program
+WORKDIR /app/
+COPY --from=build /aline-card-microservice/card-microservice/target/card-microservice-0.1.0.jar card_jar
+CMD java -jar card_jar
