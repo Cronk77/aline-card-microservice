@@ -49,22 +49,8 @@ pipeline{
                 //ensures build doesn't fail if there isnt any previous images to delete
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     //sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
+                    sh 'docker rmi -f $(docker images --filter reference="cm*" -q)'
 				    //sh 'docker rmi --force $(docker images -q -f dangling=true)'
-
-                    sh 'docker rm 83be7c9628d0'
-                    sh 'docker rm 4288ed2311a7'
-                    sh 'docker rm 06735d187c70'
-                    sh 'docker rm 222088d4b98c'
-                    sh 'docker rm ffea08aaf137'
-                    sh 'docker rm 68866fd9adcd'
-                    sh 'docker rm 7ef3062e8d5b'
-                    sh 'docker rm b81f0b2edbf8'
-                    sh 'docker rm 1154c7f1d342'
-                    sh 'docker rm 05d78ab9179c'
-                    sh 'docker rm 6a812c32f5ef'
-                    sh 'docker rm e94b0f7ab810'
-                    sh 'docker rm 7d13d15bcacd'
-                    sh 'docker rm d2d3d2e62a61'
                     sh 'docker ps -a'
                     sh 'docker images'
                 }
