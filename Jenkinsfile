@@ -27,32 +27,34 @@ pipeline{
                 checkout scm
             }
         }
-        stage("Test"){
-            steps{
-                sh "mvn clean test"  
-            }
-        }
-        stage('SonarQube Analysis') {
-            steps{
-                withSonarQubeEnv('SQ') {
-                    sh "mvn clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT}"
-                }
-            }
-        }
-        stage('Quality Gate'){//assess using custom qality gate cc-qualityGate
-            steps{
-                waitForQualityGate abortPipeline: true
-            }
-        }
-        // stage('Remove old Image(s)'){//to ensure the agent doesnt run out of space by deleting image builds
-		// 	steps{
-        //         //ensures build doesn't fail if there isnt any previous images to delete
-        //         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-        //             sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
-		// 		    sh 'docker rmi --force $(docker images -q -f dangling=true)'
+        // stage("Test"){
+        //     steps{
+        //         sh "mvn clean test"  
+        //     }
+        // }
+        // stage('SonarQube Analysis') {
+        //     steps{
+        //         withSonarQubeEnv('SQ') {
+        //             sh "mvn clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT}"
         //         }
-		// 	}
-		// }
+        //     }
+        // }
+        // stage('Quality Gate'){//assess using custom qality gate cc-qualityGate
+        //     steps{
+        //         waitForQualityGate abortPipeline: true
+        //     }
+        // }
+        stage('Remove old Image(s)'){//to ensure the agent doesnt run out of space by deleting image builds
+			steps{
+                //ensures build doesn't fail if there isnt any previous images to delete
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    //sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
+				    sh 'docker rmi --force $(docker images -q -f dangling=true)'
+                    sh 'docker ps -a'
+                    sh 'docker images'
+                }
+			}
+		}
         stage("Build"){
             steps{
                 script{
