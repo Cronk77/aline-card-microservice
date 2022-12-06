@@ -27,63 +27,60 @@ pipeline{
                 checkout scm
             }
         }
-        // stage("Test"){
-        //     steps{
-        //         sh "mvn clean test"  
-        //     }
-        // }
-        // stage('SonarQube Analysis') {
-        //     steps{
-        //         withSonarQubeEnv('SQ') {
-        //             sh "mvn clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT}"
-        //         }
-        //     }
-        // }
-        // stage('Quality Gate'){//assess using custom qality gate cc-qualityGate
-        //     steps{
-        //         waitForQualityGate abortPipeline: true
-        //     }
-        // }
+        stage("Test"){
+            steps{
+                sh "mvn clean test"  
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps{
+                withSonarQubeEnv('SQ') {
+                    sh "mvn clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT}"
+                }
+            }
+        }
+        stage('Quality Gate'){//assess using custom qality gate cc-qualityGate
+            steps{
+                waitForQualityGate abortPipeline: true
+            }
+        }
         stage('Remove old Image(s)'){//to ensure the agent doesnt run out of space by deleting image builds
 			steps{
                 //ensures build doesn't fail if there isnt any previous images to delete
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    //sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
-                    sh 'docker rmi -f $(docker images --filter reference="cm*" -q)'
-				    //sh 'docker rmi --force $(docker images -q -f dangling=true)'
-                    sh 'docker ps -a'
-                    sh 'docker images'
+                    sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
+				    sh 'docker rmi --force $(docker images -q -f dangling=true)'
                 }
 			}
 		}
-        // stage("Build"){
-        //     steps{
-        //         script{
-        //             image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "--build-arg APP_PORT=${APP_PORT} .")
-        //         }
-        //     }
-        // }
-        // stage("Push Image"){
-        //     steps{
-        //         script{
-        //             docker.withRegistry(
-        //                 "https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com",
-        //                 "ecr:${AWS_REGION}:${AWS_JENKINS_CRED}"){
-        //                 image.push("${IMAGE_TAG}")
-        //                 image.push('latest')
-        //             }
-        //         }
-        //     }
-        // }
-        // stage("Deploy"){
-        //     steps{
-        //         script{
-        //             withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'cc-kubeconfig', namespace: '', serverUrl: '') {
-        //                 sh 'kubectl delete deployment ${SERVICE_NAME}-deployment'
-        //                 sh 'kubectl apply -f  ${DEPLOYMENT_FILE}'
-        //             }
-        //         }
-        //     }
-        // }
+        stage("Build"){
+            steps{
+                script{
+                    image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "--build-arg APP_PORT=${APP_PORT} .")
+                }
+            }
+        }
+        stage("Push Image"){
+            steps{
+                script{
+                    docker.withRegistry(
+                        "https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com",
+                        "ecr:${AWS_REGION}:${AWS_JENKINS_CRED}"){
+                        image.push("${IMAGE_TAG}")
+                        image.push('latest')
+                    }
+                }
+            }
+        }
+        stage("Deploy"){
+            steps{
+                script{
+                    withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'cc-kubeconfig', namespace: '', serverUrl: '') {
+                        sh 'kubectl delete deployment ${SERVICE_NAME}-deployment'
+                        sh 'kubectl apply -f  ${DEPLOYMENT_FILE}'
+                    }
+                }
+            }
+        }
     }
 }
