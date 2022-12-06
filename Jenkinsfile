@@ -49,7 +49,7 @@ pipeline{
                 //ensures build doesn't fail if there isnt any previous images to delete
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     //sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
-				    sh 'docker rmi --force $(docker images -q -f dangling=true)'
+				    //sh 'docker rmi --force $(docker images -q -f dangling=true)'
                     sh 'docker rm edf0931e05b1'
                     sh 'docker rm 2b107dbdf5f0'
                     sh 'docker rm ed1aaa001830'
@@ -74,34 +74,34 @@ pipeline{
                 }
 			}
 		}
-        stage("Build"){
-            steps{
-                script{
-                    image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "--build-arg APP_PORT=${APP_PORT} .")
-                }
-            }
-        }
-        stage("Push Image"){
-            steps{
-                script{
-                    docker.withRegistry(
-                        "https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com",
-                        "ecr:${AWS_REGION}:${AWS_JENKINS_CRED}"){
-                        image.push("${IMAGE_TAG}")
-                        image.push('latest')
-                    }
-                }
-            }
-        }
-        stage("Deploy"){
-            steps{
-                script{
-                    withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'cc-kubeconfig', namespace: '', serverUrl: '') {
-                        sh 'kubectl delete deployment ${SERVICE_NAME}-deployment'
-                        sh 'kubectl apply -f  ${DEPLOYMENT_FILE}'
-                    }
-                }
-            }
-        }
+        // stage("Build"){
+        //     steps{
+        //         script{
+        //             image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "--build-arg APP_PORT=${APP_PORT} .")
+        //         }
+        //     }
+        // }
+        // stage("Push Image"){
+        //     steps{
+        //         script{
+        //             docker.withRegistry(
+        //                 "https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com",
+        //                 "ecr:${AWS_REGION}:${AWS_JENKINS_CRED}"){
+        //                 image.push("${IMAGE_TAG}")
+        //                 image.push('latest')
+        //             }
+        //         }
+        //     }
+        // }
+        // stage("Deploy"){
+        //     steps{
+        //         script{
+        //             withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'cc-kubeconfig', namespace: '', serverUrl: '') {
+        //                 sh 'kubectl delete deployment ${SERVICE_NAME}-deployment'
+        //                 sh 'kubectl apply -f  ${DEPLOYMENT_FILE}'
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
