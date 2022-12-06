@@ -50,11 +50,7 @@ pipeline{
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     //sh 'docker rmi -f $(docker images --filter reference="${IMAGE_NAME}" -q)'
 				    //sh 'docker rmi --force $(docker images -q -f dangling=true)'
-                    sh 'docker rm edf0931e05b1'
-                    sh 'docker rm 2b107dbdf5f0'
-                    sh 'docker rm ed1aaa001830'
-                    sh 'docker rm d8d9d2f9edb9'
-                    sh 'docker rm d8d9d2f9edb9'
+
                     sh 'docker rm 83be7c9628d0'
                     sh 'docker rm 4288ed2311a7'
                     sh 'docker rm 06735d187c70'
