@@ -39,6 +39,6 @@ ENV APP_PORT=$APP_PORT
 
 # Run Program
 WORKDIR /app/
-COPY --from=build /aline-card-microservice/card-microservice/target/card-microservice-0.1.0.jar card_jar
+COPY --from=build /aline-card-microservice/card-microservice/target/card-microservice-*.jar card_jar
 EXPOSE ${APP_PORT}
 CMD java -jar card_jar
